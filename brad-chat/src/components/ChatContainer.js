@@ -12,40 +12,40 @@ function ChatContainer({ messages, setMessages, setVideoSrc }) {
 
   const handleSendMessage = async (message) => {
     setMessages([...messages, { id: Date.now(), text: message, sender: 'user' }]);
-
-    console.log("1. setting messages", message);
-
+  
     let data = { "message": message };
     try {
-      // Call the backend API using fetch
-      const response = await fetch('/api/invoke/chat', {
-        method: 'POST', // or 'GET' depending on your API
+      // Call the backend API
+      const response = await fetch('/api/enrichment', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data), // Send the form data as a JSON payload
+        body: JSON.stringify(data),
       });
-      console.log("2. got response", response);
-
-      // Parse the JSON response
+  
       const result = await response.json();
-      const bot_response = result['response'];
-      const video_url = result['video']; // Extract the video link from the response
-      const start_time = result['time']; // Extract the video link from the response
-      console.log("-- video_url", video_url);
-      console.log("-- start_time", start_time);
-
-      // Update messages
-      setMessages((messages) => [...messages, { id: Date.now(), text: bot_response, sender: 'bot' }]);
-
-      // Pass the video link to the parent component
-      if (video_url) {
-        setVideoSrc(`https://www.youtube.com/embed/${video_url}?autoplay=1&start=${start_time}`);
+      const file_url = result['file-url']; // Extract file URL
+  
+      // setMessages((messages) => [...messages, { id: Date.now(), text: bot_response, sender: 'bot' }]);
+  
+      // Automatically download the file if available
+      if (file_url) {
+        const fileResponse = await fetch(file_url);
+        const blob = await fileResponse.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "brad_enrichment.xlsx";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
       }
     } catch (error) {
       console.error('Error:', error);
     }
-  };
+  };  
 
   return (
     <div className="chat-container">

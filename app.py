@@ -18,9 +18,9 @@ from BRAD.agent import Agent
 from BRAD.constants import TOOL_MODULES
 
 # Video endpoints
-from video_endpoints import bp as video_endpoints_bp
-from video_endpoints import set_globals as set_globals_network
-from video_endpoints import initiate_start as initiate_start_network
+from enrichment_endpoints import bp as enrichment_endpoints_bp
+from enrichment_endpoints import set_globals as set_globals_network
+from enrichment_endpoints import initiate_start as initiate_start_network
 
 # Modify BRAD configs on the fly
 CONFIG_FILE = "config.json"
@@ -82,7 +82,6 @@ set_globals_network(DATA_FOLDER, UPLOAD_FOLDER, DATABASE_FOLDER, ALLOWED_EXTENSI
 initiate_start_network()
 
 # Register the Blueprint for the endpoints
-# app.register_blueprint(brad_endpoints_bp)
-app.register_blueprint(video_endpoints_bp)
+app.register_blueprint(enrichment_endpoints_bp)
 
 

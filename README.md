@@ -1,9 +1,6 @@
-# BRAD-Video RAG
-This repository deploys a [`BRAD`](https://github.com/Jpickard1/BRAD) for Retrieval Augemented Generation (RAG) with videos from Youtube. A BRAD (Bioinformatics Retrieval Augmented Digital assistant) agent makes youtube channels searchable and interactive by both providing summary explinations and improving search in large video serieses. This repository contains every recorded seminar from the University of Michigan [Department of Computational Medicine and Bioinformatics (DCMB) youtube channel](https://www.youtube.com/@universityofmichigancomput8877/featured) and videos from 3Blue1Brown.
+# Gene Enrichment with BRAD
 
-https://github.com/user-attachments/assets/293d7bf0-5e6b-4bcb-b62b-e4b8fd17e65f
-
-**Note**: documentation is still under construction for this repository.
+1. note to self: openpyxl is an additional requirement beyond BRAD-DEV
 
 ## Setup
 Follow the below instructions to install the necessary dependencies and build the RAG database. This must be run one time when installing the system, and note that the dependencies identical to that of the [`BRAD` repository](https://github.com/Jpickard1/BRAD) with the addition of `scrapetube` and `youtube_transcript_api`.

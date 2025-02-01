@@ -33,6 +33,8 @@ from BRAD.rag import create_database
 from BRAD import llms # import load_nvidia, load_openai
 from BRAD.endpoints import parse_log_for_one_query
 
+from brad_enrichment import perform_enrichment
+
 PREVIOUS_NODE = None
 DEFAULT_SESSION_EXTN = 'Enrichment-Chat'
 
@@ -156,6 +158,26 @@ def initiate_start():
 #                                  ENDPOINT
 #
 ###############################################################################
+
+@bp.route("/enrichment", methods=['POST'])
+def ep_enrichment():
+    return brad_enrichment(request)
+
+def brad_enrichment(request):
+    request_data = request.json
+    print(f"{request_data=}")
+    brad_query = request_data.get("message")
+    print(f"{brad_query=}")
+    perform_enrichment(brad_query)
+    response_data = {
+        "response": "Enrichment analysis completed.",
+        "file-url": "/api/download"
+    }
+    return jsonify(response_data)
+
+@bp.route('/download', methods=['GET'])
+def download_file():
+    return send_from_directory("", "enrichment_results.xlsx", as_attachment=True)
 
 @bp.route("/invoke/chat", methods=['POST'])
 def ep_invoke_chat():
