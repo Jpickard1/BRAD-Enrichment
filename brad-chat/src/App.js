@@ -66,29 +66,9 @@ function App() {
   return (
     <div className="App">
       <header className="App-header">
-        <h2>DCMB Seminar RAG by BRAD {String.fromCodePoint('0x1f916')}</h2>
+        <h2>Gene Enrichment with BRAD {String.fromCodePoint('0x1f916')}</h2>
       </header>
       <div className="main-content">
-        {/* YouTube Video on the right */}
-        <div className="video-container">
-          <iframe
-            src={videoSrc} // Dynamically update the video source
-            title="YouTube video"
-            allowFullScreen
-          ></iframe>
-          {/* Settings Panel */}
-          <div className="database-options">
-            <h3>Settings</h3>
-            <div className="setting-option-choose-db">
-              <label htmlFor="rag-database"><b>Choose Database:</b></label>
-              <select id="rag-database" value={ragDatabase} onChange={handleRagChange}>
-                {availableDatabases.map((db, index) => (
-                  <option key={index} value={db}>{db}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
         {/* Chat Container on the left */}
         <ChatContainer
           messages={messages}

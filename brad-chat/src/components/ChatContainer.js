@@ -49,7 +49,6 @@ function ChatContainer({ messages, setMessages, setVideoSrc }) {
 
   return (
     <div className="chat-container">
-      <MessageList messages={messages} />
       <MessageInput onSendMessage={handleSendMessage} />
     </div>
   );
