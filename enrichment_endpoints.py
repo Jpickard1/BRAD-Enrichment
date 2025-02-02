@@ -362,7 +362,7 @@ def databases_available():
     """
     # Auth: Joshua Pickard
     #       jpic@umich.edu
-    # Date: October 17, 2024    
+    # Date: October 17, 2024
     
     # Get list of directories at this location
     try:
