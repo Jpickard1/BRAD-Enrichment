@@ -14,6 +14,7 @@ sys.path.append('../BRAD')
 from rich import print
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor
+from enrichment_literature_database import load_database
 
 # Imports for BRAD library
 from BRAD.agent import Agent # , AgentFactory
@@ -51,6 +52,8 @@ accross the results indicate that.
 
 Do not include information about yourself or the nature of this request.
 
+Enrichment Database: {database}
+
 Enrichment Results: """
 
 SYSTEM_OVERVIEW_PROMPT = """You are a bioinformatics specialist tasked with summarizing gene enrichment results. Several enrichment 
@@ -78,39 +81,57 @@ def process_pathway(pathway_database_pair):
     print(f"{literature_database=}")
     # print(isinstance(DATABASE_FOLDER, None))
     print(f"{(literature_database is not None)=}")
+    rag = False
     if literature_database is not None:
         try:
-            persist_directory = literature_database # os.path.join(DATABASE_FOLDER)
-            print(f"{persist_directory=}")
-            vectordb = Chroma(
-                persist_directory=persist_directory,  # Path where the database was saved
-                embedding_function=EMBEDDINGS_MODEL,  # Embedding model
-                collection_name="default"  # Ensure this matches what was used during writing
-            )
-            print(f"{vectordb=}")
+            vectordb = load_database(db_path=literature_database, verbose=False)
+            #print(f"{vectordb=}")
             brad.state['databases']['RAG'] = vectordb
-            print(f"{brad.state['databases']['RAG']=}")
-            print("Database connected!")
-            print(f"{vectordb.get().keys()=}")
-            print(f"{len(vectordb.get()['ids'])=}")
+            #print(f"{brad.state['databases']['RAG']=}")
+            #print("Database connected!")
+            #print(f"{len(vectordb.get()['ids'])=}")
+            rag = True
         except Exception as e:
-            print("Database NOT connected!")
-            print(f"{vectordb.get().keys()=}")
-            print(f"{len(vectordb.get()[vectordb.get().keys()[0]])=}")
+            #print("Database NOT connected!")
+            #print(f"{vectordb.get().keys()=}")
+            #print(f"{len(vectordb.get()[vectordb.get().keys()[0]])=}")
             logger.warning(f"Failed to initialize ChromaDB: {e}")
-    print(f"{brad.state=}")
-    return brad.invoke(SYSTEM_ENRICHMENT_PROMPT.format(database_name=database, enrichment_term=pathway))
+    sources, ragtext = [], []
+    response = brad.invoke(SYSTEM_ENRICHMENT_PROMPT.format(database_name=database, enrichment_term=pathway))
+    if rag:
+        for _, doc in enumerate(brad.state['process']['steps'][0]['docs-to-gui']):
+            sources.append(doc["source"])
+            ragtext.append(doc["text"])
+    return response, sources, ragtext
 
 def summarize_enrichment_type(enrichment_df):
     """Summarize the results of an enrichment dataframe"""
+    enrichment_df, database, literature_database = enrichment_df
     brad = Agent(
         tools=['RAG'],
         gui=True,
         config='config.json',
         interactive=False
     )
+    print(f"{literature_database=}")
+    # print(isinstance(DATABASE_FOLDER, None))
+    print(f"{(literature_database is not None)=}")
+    rag = False
+    if literature_database is not None:
+        try:
+            vectordb = load_database(db_path=literature_database, verbose=False)
+            brad.state['databases']['RAG'] = vectordb
+            rag = True
+        except Exception as e:
+            logger.warning(f"Failed to initialize ChromaDB: {e}")
     minimal_enrichment_df = enrichment_df[['rank', 'path_name', 'BRAD Result']].copy()
-    return brad.invoke(SYSTEM_ENRICHMENT_TYPE_PROMPT + minimal_enrichment_df.to_json(orient="records"))
+    sources, ragtext = [], []
+    response = brad.invoke(SYSTEM_ENRICHMENT_TYPE_PROMPT.format(database=database) + minimal_enrichment_df.to_json(orient="records"))
+    if rag:
+        for _, doc in enumerate(brad.state['process']['steps'][0]['docs-to-gui']):
+            sources.append(doc["source"])
+            ragtext.append(doc["text"])
+    return response, sources, ragtext
 
 def perform_enrichment(
         gene_string,
@@ -150,18 +171,26 @@ def perform_enrichment(
         with ThreadPoolExecutor() as executor:
             enrichment_summaries = list(executor.map(process_pathway, pathway_database_pairs))
 
-        df.loc[:, 'BRAD Result'] = enrichment_summaries  # Safe assignment
+        enrichment_summaries_pivoted = tuple(map(list, zip(*enrichment_summaries)))
+
+        df.loc[:, 'BRAD Result'] = enrichment_summaries_pivoted[0]  # Safe assignment
+        df.loc[:, 'RAG Text'] = enrichment_summaries_pivoted[1]  # Safe assignment
+        df.loc[:, 'RAG SOurces'] = enrichment_summaries_pivoted[2]  # Safe assignment
         enrichment_dfs[dfi] = df.copy()  # Update the list with the processed DataFrame
 
 
     # Use ThreadPoolExecutor for parallel execution
-    with ThreadPoolExecutor() as executor:
-        enrichment_summaries = list(executor.map(summarize_enrichment_type, enrichment_dfs))
 
+    pathway_database_pairs = [(enrichment_dfs[dfi], databases[dfi], literature_database) for pwi in range(len(pathways))]
+    with ThreadPoolExecutor() as executor:
+        enrichment_summaries = list(executor.map(summarize_enrichment_type, pathway_database_pairs))
+    enrichment_summaries_pivoted = tuple(map(list, zip(*enrichment_summaries)))
     highlevel_df = pd.DataFrame(
         {
             "Enrichment Database": databases,
-            "Results": enrichment_summaries
+            "Results": enrichment_summaries[0],
+            "Source": enrichment_summaries[1],
+            "Text": enrichment_summaries[2]
         }
     )
     brad = Agent(
