@@ -124,7 +124,7 @@ def summarize_enrichment_type(enrichment_df):
             rag = True
         except Exception as e:
             logger.warning(f"Failed to initialize ChromaDB: {e}")
-    minimal_enrichment_df = enrichment_df[['rank', 'path_name', 'BRAD Result']].copy()
+    minimal_enrichment_df = enrichment_df[['rank', 'path_name', 'Summary']].copy()
     sources, ragtext = [], []
     response = brad.invoke(SYSTEM_ENRICHMENT_TYPE_PROMPT.format(database=database) + minimal_enrichment_df.to_json(orient="records"))
     if rag:
@@ -172,15 +172,13 @@ def perform_enrichment(
             enrichment_summaries = list(executor.map(process_pathway, pathway_database_pairs))
 
         enrichment_summaries_pivoted = tuple(map(list, zip(*enrichment_summaries)))
-
-        df.loc[:, 'BRAD Result'] = enrichment_summaries_pivoted[0]  # Safe assignment
-        df.loc[:, 'RAG Text'] = enrichment_summaries_pivoted[1]  # Safe assignment
-        df.loc[:, 'RAG SOurces'] = enrichment_summaries_pivoted[2]  # Safe assignment
+        references = enrichment_summaries_pivoted[2] # [list(set(refs)) for refs in enrichment_summaries_pivoted[2]]
+        df.loc[:, 'Summary'] = enrichment_summaries_pivoted[0]
+        df.loc[:, 'Source'] = enrichment_summaries_pivoted[1]
+        df.loc[:, 'Text'] = references
         enrichment_dfs[dfi] = df.copy()  # Update the list with the processed DataFrame
 
-
     # Use ThreadPoolExecutor for parallel execution
-
     pathway_database_pairs = [(enrichment_dfs[dfi], databases[dfi], literature_database) for pwi in range(len(pathways))]
     with ThreadPoolExecutor() as executor:
         enrichment_summaries = list(executor.map(summarize_enrichment_type, pathway_database_pairs))
@@ -188,9 +186,9 @@ def perform_enrichment(
     highlevel_df = pd.DataFrame(
         {
             "Enrichment Database": databases,
-            "Results": enrichment_summaries[0],
-            "Source": enrichment_summaries[1],
-            "Text": enrichment_summaries[2]
+            "Results": enrichment_summaries_pivoted[0],
+            "Text": enrichment_summaries_pivoted[2],
+            "Source": enrichment_summaries_pivoted[1]
         }
     )
     brad = Agent(
@@ -201,11 +199,15 @@ def perform_enrichment(
     )
     enrichment_overview = brad.invoke(SYSTEM_ENRICHMENT_TYPE_PROMPT + highlevel_df.to_json(orient="records"))
     databases.insert(0, "Overview")
-    enrichment_summaries.insert(0, enrichment_overview)
+    enrichment_summaries_pivoted[0].insert(0, enrichment_overview)
+    enrichment_summaries_pivoted[1].insert(0, "")
+    enrichment_summaries_pivoted[2].insert(0, "")
     highlevel_df = pd.DataFrame(
         {
             "Enrichment Database": databases,
-            "Results": enrichment_summaries
+            "Results": enrichment_summaries_pivoted[0],
+            "Text": enrichment_summaries_pivoted[2],
+            "Source": enrichment_summaries_pivoted[1]
         }
     )
     highlevel_df.to_csv('highlevel_df.csv')
@@ -244,9 +246,12 @@ def perform_enrichment(
 
             for coli, col in enumerate(worksheet.iter_cols()):
                 col_name = col[0].value  # First row contains column names
+                col_letter = col[0].column_letter
 
                 # Adjust column widths for specific columns
-                if col_name == "BRAD Result":
+                if col_name in ["Source", "Text", "Reference"]:
+                    worksheet.column_dimensions[col_letter].hidden = True
+                elif col_name == "Summary":
                     worksheet.column_dimensions[col[0].column_letter].width = (worksheet.column_dimensions[col[0].column_letter].width or 8.43) * 6
                 elif col_name == "rank":
                     worksheet.column_dimensions[col[0].column_letter].width = (worksheet.column_dimensions[col[0].column_letter].width or 8.43) * 0.5
@@ -263,7 +268,7 @@ def perform_enrichment(
                         cell.alignment = Alignment(wrap_text=True, vertical="top")
 
                 # Apply text wrapping for specific columns in other sheets
-                if col_name in ["BRAD Result", "path_name", "Description", "Enrichment Database", "Results"]:
+                if col_name in ["Summary", "path_name", "Description", "Enrichment Database", "Results"]:
                     for cell in col[1:]:  # Skip header row
                         cell.alignment = Alignment(wrap_text=True, vertical="top")
                 else:
