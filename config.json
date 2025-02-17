@@ -1,6 +1,6 @@
 {
     "RAG": {
-        "num_articles_retrieved": 2,
+        "num_articles_retrieved": 1,
         "multiquery": false,
         "contextual_compression": false,
         "documentEnrichment": false,
@@ -52,5 +52,5 @@
         "fontsize": null
     },
     "debug": 0,
-    "log_path": "/home/acicalo/temp/BRAD-Video/output-logs"
+    "log_path": "~/BRAD-Enrichment/output-logs"
 }
