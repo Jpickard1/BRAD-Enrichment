@@ -44,7 +44,7 @@ brad-enrichment <gene_string> [OPTIONS]
 
 #### Example Usage
 ```sh
-brad-enrichment "TP53 MYC EGFR" -d KEGG_2021_Human -p 0.01 -o my_results.xlsx
+brad-enrichment "TP53, MYC, EGFR" -d KEGG_2021_Human -p 0.01 -o my_results.xlsx
 ```
 
 ### Building an Enrichment Literature Database
