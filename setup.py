@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="brad-enrichment",
-    version="0.1.0",
+    version="0.1.1",
     author="Joshua Pickard",
     author_email="jpic@umich.edu",
     description="A command-line tool for BRAD enrichment analysis",
