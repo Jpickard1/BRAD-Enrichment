@@ -77,7 +77,7 @@ pip install -e .
 ```
 
 ## Citation
-If you use this tool in your research, please cite:
+If you use this tool in your research, please cite or paper [Language Model Powered Digital Biology with BRAD](https://arxiv.org/abs/2409.02864) as:
 
 ```
 @article{pickard2024language,
