@@ -1,13 +1,18 @@
 import os
 import sys
+import click
 import argparse
+
+original_stdout, original_stderr = sys.stdout, sys.stderr
+null_output = open(os.devnull, 'w')
+sys.stdout, sys.stderr = null_output, null_output
 from langchain.document_loaders import DirectoryLoader
-#from langchain.document_loaders import UnstructuredPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.document_loaders import PyPDFLoader
 from langchain_community.document_loaders import PyPDFLoader
+sys.stdout, sys.stderr = original_stdout, original_stderr
 
 
 def build_database(documents_directory, database_directory, database_name, text_size, text_overlap, verbose):
@@ -15,7 +20,6 @@ def build_database(documents_directory, database_directory, database_name, text_
     Builds a LangChain Chroma database from documents in the specified directory.
     """
     # Load documents
-#    loader = DirectoryLoader(documents_directory, glob="**/*.pdf")  # Adjust glob pattern if needed
     loader = DirectoryLoader(documents_directory,
                              glob="**/*.pdf",
                              loader_cls=PyPDFLoader, 
@@ -90,6 +94,20 @@ def main():
     )
 
     if args.verbose:
+        print("Database creation complete.")
+
+@click.command()
+@click.option("--documents-directory", "-d", type=str, default="documents", help="Path to the directory containing document files.")
+@click.option("--database-directory", "-D", type=str, default="databases", help="Path to the directory where the database should be stored.")
+@click.option("--database-name", "-n", type=str, default="enrichment_database", help="Name of the database to be created.")
+@click.option("--text-size", "-s", type=int, default=700, help="Size of text chunks for processing.")
+@click.option("--text-overlap", "-o", type=int, default=100, help="Number of overlapping characters between chunks.")
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output.")
+def cli(documents_directory, database_directory, database_name, text_size, text_overlap, verbose):
+    """CLI wrapper for building a LangChain Chroma database from documents."""
+    build_database(documents_directory, database_directory, database_name, text_size, text_overlap, verbose)
+
+    if verbose:
         print("Database creation complete.")
 
 if __name__ == "__main__":
