@@ -1,63 +1,84 @@
 # Gene Enrichment with BRAD
 
-1. note to self: openpyxl is an additional requirement beyond BRAD-DEV
+BRAD Enrichment is a command-line tool to generate a report for gene enrichment analysis based on a gene set and targeted literature database. The tool uses a [BRAD Agent](https://github.com/Jpickard1/BRAD) to identify the contextual significance of enrichment terms and databases based upon custom a custom literature database. This repository contains command line tools `brad-builddb` and `brad-enrichment` for building literature databases and generating reports.
 
-## Setup
-Follow the below instructions to install the necessary dependencies and build the RAG database. This must be run one time when installing the system, and note that the dependencies identical to that of the [`BRAD` repository](https://github.com/Jpickard1/BRAD) with the addition of `scrapetube` and `youtube_transcript_api`.
+![image](https://github.com/user-attachments/assets/bcab41bf-d57e-4aec-ad95-0aab14a81969)
 
-### Install Dependencies
-
-**Install BRAD**
-This code must be run from the `video-rag` branch from the `BRAD` repository, and the roots of both repository must be located within the same directory. Run the below commands to install both repositories:
+## Quickstart
+Run the following commands to install this tool:
 ```
-git clone https://github.com/Jpickard1/BRAD.git
-git clone https://github.com/Jpickard1/BRAD-Video.git
+pip install brad-enrichment
+brad-builddb --help
+brad-enrichment --help
 ```
+See below for detailed list on installing this code.
 
-**Backend (python)**
-1. Activate `BRAD-DEV` or `BRAD-1` conda environment used for developing the `BRAD` according to the specifications of that [`repository.`](https://github.com/Jpickard1/BRAD)
-
-If you wish to expand the library of searchable videos beyond those provided, install the following dependencies:
-
-2. `pip install scrapetube`
-3. `pip install youtube_transcript_api`
-
-**Frontend (javascript)**
-Run the following set of commands from the root of this repository.
-```
-curl -o- https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-source ~/.nvm/nvm.sh
-nvm install 20.18.0
-nvm use 20.18.0
-npm install --prefix ./brad-chat
+## Installation
+To install BRAD Enrichment, activate your conda environment from the [BRAD repository](https://github.com/Jpickard1/BRAD) and install the following two packages:
+```sh
+conda activate BRAD
+pip install BRAD-Agent
+pip install brad-enrichment
 ```
 
-## Turn On
-In separate terminals, execute the following commands from the root of this repository:
-```
-cd brad-chat
-npm start
-```
+## Usage
+### Gene Enrichment Analysis
+To perform gene enrichment analysis, use the following command:
 
-```
-export OPENAI_API_KEY=<PLACE YOUR OPENAI API KEY HERE>
-flask --app app run --host=0.0.0.0 --port=5000
-```
-**Note** Slight variations may be required if you are running this on windows or other systems.
-
-### Build New Video RAG Databases from Youtube (optional)
-
-To build the RAG database:
-```
-python youtube_database_construction.py
+```sh
+brad-enrichment <gene_string> [OPTIONS]
 ```
 
-## Modifications
+#### Arguments
+- `<gene_string>`: A string containing gene names separated by spaces or commas.
 
-1. specify the youtube channel
-2. specify the videos (we should add a new argument for this)
+#### Options
+- `--databases`, `-d`: List of databases to use for enrichment (default: KEGG, GO, PanglaoDB).
+- `--threshold-p-value`, `-p`: P-value threshold for enrichment results (default: 0.05).
+- `--minimum-enrichment-terms`, `-min`: Minimum number of enrichment terms to report (default: 3).
+- `--maximum-enrichment-terms`, `-max`: Maximum number of enrichment terms to report (default: 10).
+- `--literature-database`, `-l`: Path to the literature database (default: `../databases/enrichment_database`).
+- `--output`, `-o`: Output file name for results (default: `enrichment_results.xlsx`).
+- `--query`, `-q`: Custom query for enrichment analysis (default: standard query).
+- `--verbose`, `-v`: Enable verbose mode for debugging and logging.
 
-## Cite As
+#### Example Usage
+```sh
+brad-enrichment "TP53 MYC EGFR" -d KEGG_2021_Human -p 0.01 -o my_results.xlsx
+```
+
+### Building an Enrichment Literature Database
+To build an enrichment literature database, use the following command:
+
+```sh
+brad-builddb [OPTIONS]
+```
+
+#### Options
+- `--documents-directory`, `-d`: Path to the directory containing document files (default: `documents`).
+- `--database-directory`, `-D`: Path to the directory where the database should be stored (default: `databases`).
+- `--database-name`, `-n`: Name of the database to be created (default: `enrichment_database`).
+- `--text-size`, `-s`: Size of text chunks for processing (default: 700).
+- `--text-overlap`, `-o`: Number of overlapping characters between chunks (default: 100).
+- `--verbose`, `-v`: Enable verbose output.
+
+#### Example Usage
+```sh
+brad-builddb -d /path/to/documents -D /path/to/databases -n my_database -s 500 -o 50 -v
+```
+
+## Development Setup
+If you wish to contribute or modify the tool, follow these steps:
+
+```sh
+git clone https://github.com/Jpickard1/BRAD-Enrichment.git
+cd BRAD-Enrichment
+pip install -e .
+```
+
+## Citation
+If you use this tool in your research, please cite:
+
 ```
 @article{pickard2024language,
   title={Language Model Powered Digital Biology with BRAD},
