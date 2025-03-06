@@ -213,7 +213,7 @@ def build_reproducibility_report(gene_list=None, query=None, model_name=None, te
             ],
             COLUMN_TWO: [
                 '=HYPERLINK("https://github.com/Jpickard1/BRAD", "Software Repository")',
-                '=HYPERLINK("https://arxiv.org/abs/2409.02864", "Language Model Powered Digital Biology with BRAD")',
+                '=HYPERLINK("https://arxiv.org/abs/2409.02864", "Automatic Biomarker Discovery and Enrichment with BRAD")',
                 '',
                 str(gene_list),
                 '=HYPERLINK("https://maayanlab.cloud/Enrichr/", "Enrichr")',
@@ -308,6 +308,10 @@ def perform_enrichment(
     ):
     global overall_task, original_stdout, original_stderr
     null_output = open(os.devnull, 'w')
+
+    if overall_task is None:
+        progress.start()
+        overall_task = progress.add_task("[green]Setting up...", total=100)
     
     progress.update(overall_task, advance=5, description="Setting up...")
 #    heavy_imports()
@@ -410,19 +414,30 @@ def perform_enrichment(
         interactive=False
     )
     sys.stdout, sys.stderr = original_stdout, original_stderr
-
+    rag, sources, ragtext = False, [], []
+    if literature_database is not None:
+        try:
+            vectordb = load_database(db_path=literature_database, verbose=False)
+            brad.state['databases']['RAG'] = vectordb
+            rag = True
+        except Exception as e:
+            logger.warning(f"Failed to initialize ChromaDB: {e}")
     if not sources_only:
         sys.stdout, sys.stderr = null_output, null_output
         enrichment_overview = brad.invoke(SYSTEM_OVERVIEW_PROMPT.format(human_input=query) + highlevel_df.to_json(orient="records"))
         sys.stdout, sys.stderr = original_stdout, original_stderr
+        if rag:
+            for _, doc in enumerate(brad.state['process']['steps'][0]['docs-to-gui']):
+                sources.append(doc["source"])
+                ragtext.append(doc["text"])
     else:
         enrichment_overview = "Sources Only"
     total_cost += brad.state['process']['steps'][-1]['api-info']['Total Cost (USD)']
 
     databases.insert(0, "Overview")
     enrichment_summaries_pivoted[0].insert(0, enrichment_overview)
-    enrichment_summaries_pivoted[1].insert(0, "")
-    enrichment_summaries_pivoted[2].insert(0, "")
+    enrichment_summaries_pivoted[1].insert(0, sources)
+    enrichment_summaries_pivoted[2].insert(0, ragtext)
     highlevel_df = pd.DataFrame(
         {
             "Enrichment Database": pd.Series(databases),
@@ -436,8 +451,8 @@ def perform_enrichment(
     
     # 7. build the report file
     progress.update(task_id=0, advance=5, description="Building final report...")
-    model_match = re.search(r"model_name='([\w\-.]+)'", brad.state['process']['steps'][0]['llm'])
-    temperature_match = re.search(r"temperature=([\d\.]+)", brad.state['process']['steps'][0]['llm'])
+    model_match = re.search(r"model_name='([\w\-.]+)'", brad.state['process']['steps'][-1]['llm'])
+    temperature_match = re.search(r"temperature=([\d\.]+)", brad.state['process']['steps'][-1]['llm'])
     
     model_name = model_match.group(1) if model_match else None
     temperature = float(temperature_match.group(1)) if temperature_match else None
@@ -593,7 +608,7 @@ def cli(gene_string, databases, threshold_p_value, minimum_enrichment_terms, max
     # Run the enrichment function
     results = perform_enrichment(
         gene_string=gene_string,
-        databases=list(databases),  # Convert tuple to list
+        databases=list(databases),
         threshold_p_value=threshold_p_value,
         minimum_enrichment_terms=minimum_enrichment_terms,
         maximum_enrichment_terms=maximum_enrichment_terms,

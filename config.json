@@ -1,6 +1,6 @@
 {
     "RAG": {
-        "num_articles_retrieved": 1,
+        "num_articles_retrieved": 5,
         "multiquery": false,
         "contextual_compression": false,
         "documentEnrichment": false,
